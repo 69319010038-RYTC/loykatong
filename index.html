@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ลอยกระทงและปล่อยโคมออนไลน์ 3D ณ เจดีย์กลางน้ำ ระยอง</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Three.js & OrbitControls via CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+  <!-- Main 3D WebGL Scene Container -->
+  <div id="sceneContainer" class="scene-container">
+    <canvas id="webglSceneCanvas"></canvas>
+
+    <!-- 3D Camera Controls Hint Pill -->
+    <div class="camera-control-hint">
+      <span class="hint-icon">🖱️</span>
+      <span class="hint-text">คลิกลากเมาส์ / เลื่อนนิ้วเพื่อหมุนดูมุมมอง 3D รอบเจดีย์กลางน้ำ</span>
+    </div>
+  </div>
+
+  <!-- Top Navigation & Status Bar -->
+  <header class="top-nav">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 40 40" width="34" height="34">
+          <path d="M20 4 L23 15 L17 15 Z" fill="#F59E0B"/>
+          <circle cx="20" cy="18" r="4" fill="#FFF"/>
+          <path d="M8 28 C12 22, 28 22, 32 28 C28 34, 12 34, 8 28 Z" fill="#10B981"/>
+          <path d="M12 28 C15 25, 25 25, 28 28" stroke="#FDE047" stroke-width="2" fill="none"/>
+          <circle cx="20" cy="10" r="3" fill="#EF4444"/>
+          <circle cx="20" cy="8" r="1.5" fill="#FEF08A"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <div class="brand-title-row">
+          <h1 class="brand-title">ลอยกระทง & ปล่อยโคมออนไลน์</h1>
+          <span class="badge-3d">3D WebGL</span>
+        </div>
+        <p class="brand-subtitle">ณ เจดีย์กลางน้ำ โบราณสถานคู่เมืองระยอง</p>
+      </div>
+    </div>
+
+    <!-- Live Counters & Festival Actions -->
+    <div class="nav-controls">
+      <!-- Live Counter Pill -->
+      <div class="stats-pill" title="จำนวนกระทงและโคมลอย 3D ในสายน้ำและน่านฟ้า">
+        <span class="stat-item"><span class="stat-icon">🪷</span> <strong id="krathongCount">24</strong></span>
+        <span class="stat-divider">|</span>
+        <span class="stat-item"><span class="stat-icon">🏮</span> <strong id="lanternCount">16</strong></span>
+      </div>
+
+      <!-- Action: Launch Fireworks -->
+      <button id="btnLaunchFirework" class="btn-icon-pill" title="จุดพลุ 3D">
+        <span class="btn-emoji">🎆</span>
+        <span class="btn-label">จุดพลุ</span>
+      </button>
+
+      <!-- Action: Grand Fireworks Barrage -->
+      <button id="btnGrandFireworks" class="btn-icon-pill btn-grand-fireworks" title="จุดพลุชุดใหญ่เฉลิมฉลอง">
+        <span class="btn-emoji">🎇</span>
+        <span class="btn-label">พลุชุดใหญ่</span>
+      </button>
+
+      <!-- Action: Switch Lighting Ambience Mode -->
+      <button id="btnToggleTheme" class="btn-icon-pill" title="สลับโหมดบรรยากาศแสงสี (ไฟงานวัด / แสงจันทร์โรแมนติก)">
+        <span id="themeIcon" class="btn-emoji">🎪</span>
+        <span id="themeLabel" class="btn-label">โหมดงานวัด</span>
+      </button>
+
+      <!-- Action: Toggle Music -->
+      <button id="btnToggleMusic" class="btn-icon-pill" title="เปิด/ปิดเสียงดนตรีบรรเลงวันลอยกระทง">
+        <span id="musicIcon" class="btn-emoji">🎵</span>
+        <span id="musicLabel" class="btn-label">เปิดเสียง</span>
+        <div id="soundWaves" class="sound-waves hidden">
+          <span></span><span></span><span></span>
+        </div>
+      </button>
+
+      <!-- Action: Reset Camera Angle -->
+      <button id="btnResetCamera" class="btn-icon-circle" title="รีเซ็ตมุมกล้อง 3D">
+        <span>🎥</span>
+      </button>
+
+      <!-- Action: Info / Rayong Chedi Story -->
+      <button id="btnInfo" class="btn-icon-circle" title="ประวัติเจดีย์กลางน้ำ ระยอง">
+        <span>ℹ️</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Bottom Main Action Dock -->
+  <div class="bottom-action-dock">
+    <div class="action-buttons-wrapper">
+      <!-- Button: Float Krathong -->
+      <button id="btnOpenKrathongModal" class="btn-action btn-krathong">
+        <div class="btn-action-icon">
+          <svg viewBox="0 0 48 48" width="28" height="28">
+            <path d="M24 6 C24 6 20 12 20 15 C20 17 21.8 19 24 19 C26.2 19 28 17 28 15 C28 12 24 6 24 6 Z" fill="#EF4444"/>
+            <circle cx="24" cy="14" r="2.5" fill="#FEF08A"/>
+            <path d="M24 19 L24 24" stroke="#D97706" stroke-width="2.5"/>
+            <path d="M6 32 C12 24 36 24 42 32 C36 40 12 40 6 32 Z" fill="#059669"/>
+            <path d="M12 30 C16 26 32 26 36 30" stroke="#FBBF24" stroke-width="3" fill="none"/>
+            <circle cx="24" cy="27" r="4" fill="#F59E0B"/>
+          </svg>
+        </div>
+        <div class="btn-action-content">
+          <span class="btn-action-main">ลอยกระทง 3D</span>
+          <span class="btn-action-sub">สู่สายน้ำปากน้ำระยอง</span>
+        </div>
+      </button>
+
+      <!-- Button: Release Sky Lantern -->
+      <button id="btnOpenLanternModal" class="btn-action btn-lantern">
+        <div class="btn-action-icon">
+          <svg viewBox="0 0 48 48" width="28" height="28">
+            <rect x="14" y="10" width="20" height="26" rx="4" fill="#F59E0B"/>
+            <ellipse cx="24" cy="10" rx="10" ry="3" fill="#D97706"/>
+            <ellipse cx="24" cy="36" rx="10" ry="3" fill="#B45309"/>
+            <circle cx="24" cy="30" r="4" fill="#FEF08A"/>
+            <circle cx="24" cy="30" r="2" fill="#EF4444"/>
+            <line x1="20" y1="38" x2="20" y2="44" stroke="#FDE047" stroke-width="1.5"/>
+            <line x1="28" y1="38" x2="28" y2="44" stroke="#FDE047" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div class="btn-action-content">
+          <span class="btn-action-main">ปล่อยโคมลอย 3D</span>
+          <span class="btn-action-sub">สู่ฟากฟ้าราตรีระยอง</span>
+        </div>
+      </button>
+    </div>
+    <div class="tip-banner">
+      <span>💡 หมุนฉาก 3D ได้อิสระ • แตะที่กระทงหรือโคมในฉากเพื่ออ่านคำอธิษฐาน • คลิกบนฟ้าเพื่อจุดพลุ 3D</span>
+    </div>
+  </div>
+
+  <!-- 3D Customizer Modal / Creation Studio -->
+  <div id="customizerModal" class="modal-overlay hidden">
+    <div class="customizer-card">
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <div class="mode-tabs">
+          <button id="tabKrathong" class="mode-tab active" data-mode="krathong">
+            <span class="tab-icon">🪷</span> ตกแต่งกระทง 3D
+          </button>
+          <button id="tabLantern" class="mode-tab" data-mode="lantern">
+            <span class="tab-icon">🏮</span> ตกแต่งโคมลอย 3D
+          </button>
+        </div>
+        <button id="btnCloseModal" class="btn-close" aria-label="ปิด">✕</button>
+      </div>
+
+      <!-- Modal Body: 3D Interactive Preview + Options Controls -->
+      <div class="modal-body">
+        <!-- Left: Interactive 3D Real-time Preview Stage -->
+        <div class="preview-stage">
+          <div class="preview-backdrop">
+            <!-- 3D WebGL Canvas for Real-time Customizer Preview -->
+            <div id="livePreviewContainer" class="live-preview-box">
+              <canvas id="preview3DCanvas"></canvas>
+            </div>
+            <div class="preview-3d-rotate-indicator">
+              <span>🔄 หมุนดู 3D รอบทิศทางได้ 360°</span>
+            </div>
+          </div>
+          <div class="preview-hint">
+            <span id="previewHintText">✨ แสดงโมเดล 3D แบบ Real-time หมุนดูรอบทิศทางได้</span>
+          </div>
+        </div>
+
+        <!-- Right: Customizer Options Panel -->
+        <div class="customizer-options">
+          
+          <!-- Section A: Krathong Specific Options -->
+          <div id="krathongOptionsSection" class="options-section">
+            <!-- 1. Base Selection -->
+            <div class="option-group">
+              <label class="group-label">1. เลือกฐานกระทง 3D (Thai Craft Base)</label>
+              <div class="choice-grid grid-4" id="baseChoices">
+                <button type="button" class="choice-card active" data-base="banana">
+                  <span class="choice-icon">🌿</span>
+                  <span class="choice-title">ใบตองพับผกา</span>
+                  <span class="choice-desc">กลีบซ้อนประณีต</span>
+                </button>
+                <button type="button" class="choice-card" data-base="lotus">
+                  <span class="choice-icon">🌸</span>
+                  <span class="choice-title">บัวหลวงบาน</span>
+                  <span class="choice-desc">กลีบซ้อนชมพูขาว</span>
+                </button>
+                <button type="button" class="choice-card" data-base="coconut">
+                  <span class="choice-icon">🥥</span>
+                  <span class="choice-title">กะลามะพร้าว</span>
+                  <span class="choice-desc">แกะสลักลายไทย</span>
+                </button>
+                <button type="button" class="choice-card" data-base="bread">
+                  <span class="choice-icon">🍞</span>
+                  <span class="choice-title">เต่าขนมปัง</span>
+                  <span class="choice-desc">รักษ์น้ำอาหารปลา</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 2. Flower Selection -->
+            <div class="option-group">
+              <label class="group-label">2. ชนิดดอกไม้ไทยมงคล 3D (Auspicious Flowers)</label>
+              <div class="choice-grid grid-4" id="flowerChoices">
+                <button type="button" class="choice-card active" data-flower="marigold">
+                  <span class="choice-color-dot" style="background:#F59E0B;"></span>
+                  <span class="choice-title">ดาวเรืองทอง</span>
+                  <span class="choice-desc">รุ่งเรืองมั่งคั่ง</span>
+                </button>
+                <button type="button" class="choice-card" data-flower="dokrak">
+                  <span class="choice-color-dot" style="background:#C084FC;"></span>
+                  <span class="choice-title">บานไม่รู้โรย</span>
+                  <span class="choice-desc">รักยั่งยืนยาวนาน</span>
+                </button>
+                <button type="button" class="choice-card" data-flower="gardenia">
+                  <span class="choice-color-dot" style="background:#FFFFFF; border:1px solid #CBD5E1;"></span>
+                  <span class="choice-title">พุดซ้อนมะลิ</span>
+                  <span class="choice-desc">บริสุทธิ์ผ่องใส</span>
+                </button>
+                <button type="button" class="choice-card" data-flower="lotusflower">
+                  <span class="choice-color-dot" style="background:#F472B6;"></span>
+                  <span class="choice-title">บัวสัตตบงกช</span>
+                  <span class="choice-desc">สงบ ร่มเย็น</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 3. Thai Ornaments & Accessories -->
+            <div class="option-group">
+              <label class="group-label">3. เครื่องแขวนและของมงคล 3D (Thai Ornaments)</label>
+              <div class="choice-grid" id="krathongOrnamentChoices">
+                <button type="button" class="choice-card active" data-ornament="uba">
+                  <span class="choice-icon">🪡</span>
+                  <span class="choice-title">อุบะมาลัยดอกรัก</span>
+                  <span class="choice-desc">พวงมาลัยห้อยข้าง</span>
+                </button>
+                <button type="button" class="choice-card" data-ornament="blessing_flag">
+                  <span class="choice-icon">🎏</span>
+                  <span class="choice-title">ป้ายอวยพร & ธง</span>
+                  <span class="choice-desc">ปักธงสามเหลี่ยมมงคล</span>
+                </button>
+                <button type="button" class="choice-card" data-ornament="none">
+                  <span class="choice-icon">✨</span>
+                  <span class="choice-title">เรียบง่ายดั้งเดิม</span>
+                  <span class="choice-desc">เน้นดอกไม้ธรรมชาติ</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 4. Candle Color & Lighting Switch -->
+            <div class="option-group">
+              <label class="group-label">4. สีเทียนและธูปทองมงคล</label>
+              <div class="color-palette" id="candleColorChoices">
+                <button type="button" class="color-swatch active" data-color="#FCD34D" style="background:#FCD34D;" title="สีเหลืองทอง"></button>
+                <button type="button" class="color-swatch" data-color="#EF4444" style="background:#EF4444;" title="สีแดงมงคล"></button>
+                <button type="button" class="color-swatch" data-color="#F472B6" style="background:#F472B6;" title="สีชมพูบัว"></button>
+                <button type="button" class="color-swatch" data-color="#C084FC" style="background:#C084FC;" title="สีม่วงแก้ว"></button>
+                <button type="button" class="color-swatch" data-color="#FFFFFF" style="background:#FFFFFF; border:1px solid #94A3B8;" title="สีขาวบริสุทธิ์"></button>
+              </div>
+
+              <!-- Interactive Light Up Button -->
+              <div class="light-toggle-row">
+                <span class="toggle-text">เปลวไฟและแสงเรืองรอง (Point Light):</span>
+                <button type="button" id="btnToggleKrathongFlame" class="btn-toggle-light active">
+                  <span class="fire-icon">🔥</span> <span id="krathongFlameState">จุดไฟแล้ว</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section B: Sky Lantern Specific Options -->
+          <div id="lanternOptionsSection" class="options-section hidden">
+            <!-- 1. Lantern Shape -->
+            <div class="option-group">
+              <label class="group-label">1. รูปทรงโคมล้านนา 3D (Lanna Lantern Shapes)</label>
+              <div class="choice-grid" id="lanternShapeChoices">
+                <button type="button" class="choice-card active" data-shape="cylinder">
+                  <span class="choice-icon">🏮</span>
+                  <span class="choice-title">ทรงกระบอก</span>
+                  <span class="choice-desc">ดั้งเดิมยี่เป็งล้านนา</span>
+                </button>
+                <button type="button" class="choice-card" data-shape="lotus">
+                  <span class="choice-icon">🪷</span>
+                  <span class="choice-title">ทรงบัวล้านนา</span>
+                  <span class="choice-desc">กลีบมนอ่อนช้อย</span>
+                </button>
+                <button type="button" class="choice-card" data-shape="diamond">
+                  <span class="choice-icon">💎</span>
+                  <span class="choice-title">ทรงเพชรแปดเหลี่ยม</span>
+                  <span class="choice-desc">รับโชคมงคล 8 ทิศ</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 2. Lantern Color -->
+            <div class="option-group">
+              <label class="group-label">2. สีกระดาษสาโปร่งแสง 3D (Mulberry Paper)</label>
+              <div class="choice-grid grid-5" id="lanternColorChoices">
+                <button type="button" class="choice-card active" data-color="white">
+                  <span class="choice-color-dot" style="background:#FFFDF2; border:1px solid #CBD5E1;"></span>
+                  <span class="choice-title">ขาวนวล</span>
+                </button>
+                <button type="button" class="choice-card" data-color="gold">
+                  <span class="choice-color-dot" style="background:#F59E0B;"></span>
+                  <span class="choice-title">เหลืองทอง</span>
+                </button>
+                <button type="button" class="choice-card" data-color="orange">
+                  <span class="choice-color-dot" style="background:#EA580C;"></span>
+                  <span class="choice-title">ส้มแสด</span>
+                </button>
+                <button type="button" class="choice-card" data-color="pink">
+                  <span class="choice-color-dot" style="background:#EC4899;"></span>
+                  <span class="choice-title">ชมพูบัว</span>
+                </button>
+                <button type="button" class="choice-card" data-color="red">
+                  <span class="choice-color-dot" style="background:#DC2626;"></span>
+                  <span class="choice-title">แดงชาด</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 3. Lantern Pattern -->
+            <div class="option-group">
+              <label class="group-label">3. ลวดลายไทยประยุกต์ 3D (Thai Patterns)</label>
+              <div class="choice-grid grid-4" id="lanternPatternChoices">
+                <button type="button" class="choice-card active" data-pattern="kanok">
+                  <span class="choice-icon">🔥</span>
+                  <span class="choice-title">ลายกนก</span>
+                  <span class="choice-desc">เปลวไฟพริ้วไหว</span>
+                </button>
+                <button type="button" class="choice-card" data-pattern="prajamyam">
+                  <span class="choice-icon">⚜️</span>
+                  <span class="choice-title">ลายประจำยาม</span>
+                  <span class="choice-desc">ดอกมงคลสี่ทิศ</span>
+                </button>
+                <button type="button" class="choice-card" data-pattern="moon_stars">
+                  <span class="choice-icon">🌙</span>
+                  <span class="choice-title">จันทร์ & ดาว</span>
+                  <span class="choice-desc">ประกายฟ้าระยอง</span>
+                </button>
+                <button type="button" class="choice-card" data-pattern="plain">
+                  <span class="choice-icon">⚪</span>
+                  <span class="choice-title">กระดาษสาเรียบ</span>
+                  <span class="choice-desc">เนื้อเส้นใยธรรมชาติ</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 4. Ribbon & Tassel Decorations -->
+            <div class="option-group">
+              <label class="group-label">4. หางริบบิ้นและพู่ห้อย 3D (Flowing Streamers & Tassels)</label>
+              <div class="choice-grid" id="lanternRibbonChoices">
+                <button type="button" class="choice-card active" data-ribbon="streamer">
+                  <span class="choice-icon">🎗️</span>
+                  <span class="choice-title">ริบบิ้นผ้าไหมคู่</span>
+                  <span class="choice-desc">พลิ้วไหวตามสายลม</span>
+                </button>
+                <button type="button" class="choice-card" data-ribbon="tassel">
+                  <span class="choice-icon">🎐</span>
+                  <span class="choice-title">พู่ห้อยลูกปัดทอง</span>
+                  <span class="choice-desc">หรูหราแบบล้านนา</span>
+                </button>
+                <button type="button" class="choice-card" data-ribbon="none">
+                  <span class="choice-icon">➖</span>
+                  <span class="choice-title">ไม่มีพู่ห้อย</span>
+                  <span class="choice-desc">ลอยเร็วคล่องตัว</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 5. Lantern Burner Flame Switch -->
+            <div class="option-group">
+              <div class="light-toggle-row">
+                <span class="toggle-text">แสงไฟในตัวโคม (Inner Point Light):</span>
+                <button type="button" id="btnToggleLanternFlame" class="btn-toggle-light active">
+                  <span class="fire-icon">🔥</span> <span id="lanternFlameState">จุดไฟสว่างแล้ว</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section C: Name & Wish Inputs -->
+          <div class="wish-section">
+            <div class="input-field">
+              <label for="inputSenderName" class="field-label">ชื่อผู้ขอพร / ครอบครัว</label>
+              <input type="text" id="inputSenderName" class="text-input" placeholder="ใส่ชื่อของคุณ (เช่น น้องนที หรือ ครอบครัวใจดี)" maxlength="40">
+            </div>
+
+            <div class="input-field">
+              <div class="wish-header">
+                <label for="inputWishText" class="field-label">คำอธิษฐานขอพร</label>
+                <span class="char-count"><span id="charCount">0</span>/120</span>
+              </div>
+              <textarea id="inputWishText" class="text-area" rows="2" placeholder="พิมพ์คำอธิษฐาน หรือเลือกข้อความมงคลด้านล่าง..." maxlength="120"></textarea>
+            </div>
+
+            <!-- Quick Preset Wishes -->
+            <div class="quick-wishes">
+              <span class="quick-label">ข้อความมงคล:</span>
+              <div class="preset-chips">
+                <button type="button" class="preset-chip">ขอขมาพระแม่คงคา บันดาลชีวิตร่มเย็น</button>
+                <button type="button" class="preset-chip">สุขภาพแข็งแรง ไร้โรคภัย ปลอดโปร่งใจ</button>
+                <button type="button" class="preset-chip">การงานราบรื่น การค้ารุ่งเรือง ร่ำรวยเงินทอง</button>
+                <button type="button" class="preset-chip">ครอบครัวอบอุ่น ความรักสดใส สมหวัง</button>
+              </div>
+            </div>
+
+            <!-- Release Submission Button -->
+            <div class="submit-action-row">
+              <button type="button" id="btnSubmitRelease" class="btn-submit-release">
+                <span class="submit-sparkle">✨</span>
+                <span id="submitButtonText">ปล่อยกระทงลงสู่สายน้ำ 3D</span>
+                <span class="submit-sparkle">✨</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wish Inspector Tooltip / Card (Shows when clicking any 3D Krathong or Lantern) -->
+  <div id="wishInspectCard" class="inspect-card hidden">
+    <div class="inspect-card-content">
+      <button id="btnCloseInspect" class="btn-inspect-close">✕</button>
+      <div class="inspect-type-badge">
+        <span id="inspectTypeIcon">🪷</span>
+        <span id="inspectTypeText">กระทง 3D สายน้ำระยอง</span>
+      </div>
+      <h3 id="inspectSender" class="inspect-sender">คุณผู้มีจิตศรัทธา</h3>
+      <p id="inspectWish" class="inspect-wish">ขอให้มีแต่ความสุขความเจริญ สุขภาพแข็งแรงตลอดปี</p>
+      <div class="inspect-footer">
+        <span id="inspectTime" class="inspect-time">เมื่อสักครู่</span>
+        <button id="btnSendBlessing" class="btn-blessing">
+          <span class="heart-icon">❤️</span> <span id="blessingText">ร่วมอนุโมทนา</span> <span id="blessingCount">(1)</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rayong Chedi Klang Nam Info Modal -->
+  <div id="infoModal" class="modal-overlay hidden">
+    <div class="info-card">
+      <div class="info-header">
+        <div class="info-title-group">
+          <span class="info-icon">🏛️</span>
+          <h2>พระเจดีย์กลางน้ำ จังหวัดระยอง</h2>
+        </div>
+        <button id="btnCloseInfo" class="btn-close">✕</button>
+      </div>
+      <div class="info-body">
+        <div class="info-hero-badge">
+          <span>สัญลักษณ์ทางประวัติศาสตร์และประเพณีลอยกระทงแห่งเมืองระยอง</span>
+        </div>
+        <p><strong>พระเจดีย์กลางน้ำ</strong> ตั้งอยู่บนเกาะกลางแม่น้ำระยอง ณ ตำบลปากน้ำ อำเภอเมือง จังหวัดระยอง สร้างขึ้นเมื่อปี พ.ศ. 2416 ในรัชสมัยของพระบาทสมเด็จพระจุลจอมเกล้าเจ้าอยู่หัว (รัชกาลที่ 5) โดยพระยาศรีสมุทรโภคชัยโชคชิตสงคราม (เกตุ ยมจินดา)</p>
+        <p>ในอดีตสร้างขึ้นเพื่อเป็นสัญลักษณ์สำคัญให้แก่ชาวเรือและนักเดินเรือที่ล่องเรือเข้าสู่แม่น้ำระยองได้ทราบว่า <em>"ได้เดินทางมาถึงเมืองระยองแล้ว"</em> มีลักษณะเป็นเจดีย์ทรงระฆังคว่ำสีขาวสง่างาม สูงประมาณ 10 เมตร แวดล้อมด้วยป่าชายเลนอันอุดมสมบูรณ์</p>
+        <div class="info-tradition-box">
+          <h4>🪷 ประเพณีทอดผ้าป่ากลางน้ำและลอยกระทง</h4>
+          <p>ในวันเพ็ญเดือนสิบสองของทุกปี ชาวระยองจะพร้อมใจกันจัดงาน <strong>ประเพณีทอดผ้าป่ากลางน้ำและงานลอยกระทง</strong> ณ พระเจดีย์กลางน้ำแห่งนี้ โดยมีการนำผ้าป่าลงเรือไปทอดกลางน้ำ และร่วมลอยกระทงเพื่อสักการะองค์พระเจดีย์และขอขมาพระแม่คงคา ซึ่งถือเป็นประเพณีหนึ่งเดียวในประเทศไทยที่สืบทอดกันมาอย่างยาวนาน</p>
+        </div>
+      </div>
+      <div class="info-footer">
+        <button id="btnAckInfo" class="btn-primary-close">เข้าใจแล้ว ร่วมสัมผัสบรรยากาศ 3D</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main 3D WebGL Application Script -->
+  <script src="app.js"></script>
+</body>
+</html>
